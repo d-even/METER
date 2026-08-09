@@ -2,6 +2,8 @@ import OpenAI from "openai";
 import { calculateCost } from "@/lib/pricing";
 import { build402 } from "@/lib/x402";
 
+
+
 export async function POST(req: Request) {
   const client = new OpenAI({
     apiKey: process.env.LLM_API_KEY,
@@ -10,14 +12,14 @@ export async function POST(req: Request) {
 
   try {
     const { messages } = await req.json();
-    const paymentHeader = req.headers.get("PAYMENT-SIGNATURE");
+    // const paymentHeader = req.headers.get("PAYMENT-SIGNATURE");
 
-    if (!paymentHeader) {
-      return build402("1000", "/api/v1/chat"); // max $0.001
-    }
+    // if (!paymentHeader) {
+    //   return build402("1000", "/api/v1/chat"); // max $0.001
+    // }
 
-    // TODO: kal verify karenge
-    console.log("PAYMENT RECEIVED (unverified):", paymentHeader.slice(0, 40));
+    // // TODO: kal verify karenge
+    // console.log("PAYMENT RECEIVED (unverified):", paymentHeader.slice(0, 40));
 
     const completion = await client.chat.completions.create({
       model: "llama-3.3-70b-versatile",
