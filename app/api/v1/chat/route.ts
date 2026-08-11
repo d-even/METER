@@ -1,8 +1,6 @@
 import OpenAI from "openai";
 import { calculateCost } from "@/lib/pricing";
-import { build402 } from "@/lib/x402";
-
-
+import { DEFAULT_MODEL, MODELS, isModelId } from "@/lib/models";
 
 export async function POST(req: Request) {
   const client = new OpenAI({
@@ -11,18 +9,27 @@ export async function POST(req: Request) {
   });
 
   try {
-    const { messages } = await req.json();
-    // const paymentHeader = req.headers.get("PAYMENT-SIGNATURE");
+    const { messages, model: requested } = await req.json();
 
-    // if (!paymentHeader) {
-    //   return build402("1000", "/api/v1/chat"); // max $0.001
-    // }
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return Response.json(
+        { error: "messages must be a non-empty array" },
+        { status: 400 },
+      );
+    }
 
-    // // TODO: kal verify karenge
-    // console.log("PAYMENT RECEIVED (unverified):", paymentHeader.slice(0, 40));
+    const model = requested === undefined ? DEFAULT_MODEL : requested;
+    if (!isModelId(model)) {
+      return Response.json(
+        {
+          error: `Unknown model "${model}". Supported: ${MODELS.map((m) => m.id).join(", ")}`,
+        },
+        { status: 400 },
+      );
+    }
 
     const completion = await client.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model,
       messages,
       max_tokens: 500,
     });
@@ -32,26 +39,18 @@ export async function POST(req: Request) {
       return Response.json({ error: "no usage data" }, { status: 502 });
     }
 
-    console.log("USAGE:", usage);
-
     const cost = calculateCost(
-      "llama-3.3-70b-versatile",
+      model,
       usage.prompt_tokens,
       usage.completion_tokens,
     );
 
-    console.log("COST:", cost);
-
     return Response.json({
       content: completion.choices[0].message.content,
-      usage: completion.usage,
+      model,
+      usage,
       cost,
     });
-
-    //     return Response.json({
-    //       content: completion.choices[0].message.content,
-    //       usage: completion.usage,
-    //     });
   } catch (err) {
     console.error("ERR:", err);
     return Response.json({ error: String(err) }, { status: 502 });

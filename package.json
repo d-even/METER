@@ -9,11 +9,13 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.101.4",
     "next": "16.3.0",
     "openai": "^7.4.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "viem": "^2.55.11",
+    "wagmi": "^3.7.6",
     "x402-fetch": "^1.2.0",
     "x402-next": "^1.2.0"
   },
