@@ -1,7 +1,7 @@
 import { config } from "dotenv";
-import { createWalletClient, http } from "viem";
+import { createWalletClient, http, publicActions } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { wrapFetchWithPayment } from "x402-fetch";
+import { type Signer, wrapFetchWithPayment } from "x402-fetch";
 import { baseSepolia } from "viem/chains";
 
 config({ path: ".env.local" });
@@ -10,13 +10,16 @@ const account = privateKeyToAccount(
   process.env.DEV_PRIVATE_KEY as `0x${string}`
 );
 
+// x402-fetch wants a client with both wallet and public actions.
 const client = createWalletClient({
   account,
   transport: http(),
   chain: baseSepolia,
-});
+}).extend(publicActions);
 
-const fetchWithPay = wrapFetchWithPayment(fetch, client);
+// x402 types its signer against viem's generic `Chain`, which is invariant
+// against a client pinned to a concrete chain. The shape is what it wants.
+const fetchWithPay = wrapFetchWithPayment(fetch, client as unknown as Signer);
 
 async function main() {
   const res = await fetchWithPay("http://localhost:3000/api/v1/chat", {
