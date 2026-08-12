@@ -9,7 +9,7 @@ No signup. No API key. No subscription.
 > Demo runs on Base Sepolia testnet. Nothing here touches real funds.
 
 <!-- Replace with your demo GIF or video -->
-![METER demo](docs/video.mp4)
+![METER demo](demo/video.mp4)
 
 ---
 
