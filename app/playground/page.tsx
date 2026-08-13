@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useAccount, useConnect, useSwitchChain, useWalletClient } from "wagmi";
+import { baseSepolia } from "wagmi/chains";
+import { wrapFetchWithPayment } from "x402-fetch";
 import "./playground.css";
 
 type Step = { dir: string; cls: "up" | "down"; line: string; ms: string; hdrs: string[] };
@@ -14,10 +17,24 @@ type Done = {
 };
 
 const PRESETS = [
-  "Say hi in 5 words",
-  "Explain HTTP 402 in one sentence",
+  "Know about x402",
+  "Help me in study",
   "Write a haiku about micropayments",
 ];
+
+function decodeReceipt(raw: string | null) {
+  if (!raw) return null;
+  try {
+    return JSON.parse(atob(raw));
+  } catch {
+    return null;
+  }
+}
+
+function shortAddr(v?: string) {
+  if (!v) return "—";
+  return `${v.slice(0, 6)}…${v.slice(-4)}`;
+}
 
 export default function Playground() {
   const [prompt, setPrompt] = useState(PRESETS[0]);
@@ -27,6 +44,12 @@ export default function Playground() {
   const [busy, setBusy] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const wireRef = useRef<HTMLDivElement>(null);
+
+  const { address, isConnected, chainId } = useAccount();
+  const { connect, connectors } = useConnect();
+  const { switchChain } = useSwitchChain();
+  const { data: walletClient } = useWalletClient();
+  const wrongChain = isConnected && chainId !== baseSepolia.id;
 
   /* live timer while the request is in flight */
   useEffect(() => {
@@ -41,40 +64,100 @@ export default function Playground() {
   }, [steps]);
 
   async function run() {
-    if (busy || !prompt.trim()) return;
+    if (busy || !walletClient) return;
     setBusy(true);
     setSteps([]);
     setDone(null);
     setError(null);
     setElapsed(0);
 
+    const t0 = Date.now();
+    const ms = () => `${Date.now() - t0}ms`;
+    const push = (s: Step) => setSteps((prev) => [...prev, s]);
+
+    const body = JSON.stringify({
+      messages: [{ role: "user", content: prompt }],
+    });
+
     try {
-      const res = await fetch("/api/demo", {
+      /* step 1 — unpaid probe, so the real 402 can be shown */
+      push({
+        dir: "→",
+        cls: "up",
+        line: "POST /api/v1/chat <k>HTTP/1.1</k>",
+        ms: ms(),
+        hdrs: ["<k>content-type:</k> application/json"],
+      });
+
+      const probe = await fetch("/api/v1/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
+        body,
       });
-      if (!res.body) throw new Error("no stream from /api/demo");
+      const challenge = await probe.json();
+      const a = challenge?.accepts?.[0] ?? {};
+      const price = (Number(a.maxAmountRequired ?? 0) / 1e6).toFixed(6);
 
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buf = "";
+      push({
+        dir: "←",
+        cls: "down",
+        line: `<span class="status">${probe.status}</span> Payment Required`,
+        ms: ms(),
+        hdrs: [
+          `<k>price:</k> <span class="amt">${price} USDC</span>`,
+          `<k>network:</k> ${a.network ?? "—"}`,
+          `<k>pay-to:</k> ${shortAddr(a.payTo)}`,
+          `<k>scheme:</k> ${a.scheme ?? "—"} · eip-3009`,
+        ],
+      });
 
-      for (;;) {
-        const { value, done: finished } = await reader.read();
-        if (finished) break;
-        buf += decoder.decode(value, { stream: true });
-        const lines = buf.split("\n");
-        buf = lines.pop() ?? "";
+      /* step 2 — wallet signs (MetaMask popup happens here) */
+      push({
+        dir: "⚿",
+        cls: "up",
+        line: "Signing authorization <k>in wallet</k>",
+        ms: ms(),
+        hdrs: [
+          "<k>typed-data:</k> TransferWithAuthorization",
+          `<k>signer:</k> ${shortAddr(address)}`,
+        ],
+      });
 
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          const msg = JSON.parse(line);
-          if (msg.type === "step") setSteps((s) => [...s, msg.data]);
-          if (msg.type === "done") setDone(msg.data);
-          if (msg.type === "error") setError(msg.data.message);
-        }
-      }
+      const fetchWithPay = wrapFetchWithPayment(fetch, walletClient);
+
+      const paid = await fetchWithPay("/api/v1/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      });
+
+      const result = await paid.json();
+      const receipt = decodeReceipt(paid.headers.get("x-payment-response"));
+      const txHref = receipt?.transaction
+        ? `https://sepolia.basescan.org/tx/${receipt.transaction}`
+        : null;
+
+      push({
+        dir: "←",
+        cls: "down",
+        line: `<span class="status ok">${paid.status}</span> OK <k>· settled onchain</k>`,
+        ms: ms(),
+        hdrs: [
+          `<k>charged:</k> <span class="amt">${
+            result?.cost?.finalCost?.toFixed(6) ?? "—"
+          } USDC</span>`,
+          txHref ? "<k>tx:</k> settled onchain" : "<k>tx:</k> —",
+        ],
+      });
+
+      setDone({
+        total: ms(),
+        authorized: price,
+        charged: result?.cost?.finalCost ?? 0,
+        usage: result?.usage ?? null,
+        content: result?.content ?? "",
+        txHref,
+      });
     } catch (e) {
       setError(String(e));
     } finally {
@@ -95,9 +178,23 @@ export default function Playground() {
           <span className="sep">/</span>
           <span className="where">playground</span>
         </a>
+
         <div className="barright">
-          <span className="net"><i />Base Sepolia · testnet</span>
-          <a className="ghost" href="/">← Back</a>
+          <span className="net">
+            <i />
+            Base Sepolia · testnet
+          </span>
+
+          {isConnected ? (
+            <span className="wallet">{shortAddr(address)}</span>
+          ) : (
+            <button
+              className="connect"
+              onClick={() => connect({ connector: connectors[0] })}
+            >
+              Connect wallet
+            </button>
+          )}
         </div>
       </header>
 
@@ -105,7 +202,9 @@ export default function Playground() {
         {/* ---- left: compose ---- */}
         <section className="col compose">
           <div className="panel">
-            <div className="phead"><span className="ptitle">Request</span></div>
+            <div className="phead">
+              <span className="ptitle">Request</span>
+            </div>
 
             <div className="pbody">
               <label htmlFor="p">Prompt</label>
@@ -134,27 +233,61 @@ export default function Playground() {
                 ))}
               </div>
 
-              <label htmlFor="m" style={{ marginTop: 18 }}>Model</label>
+              <label htmlFor="m" style={{ marginTop: 18 }}>
+                Model
+              </label>
               <select id="m" disabled={busy}>
                 <option>llama-3.3-70b-versatile</option>
                 <option>llama-3.1-8b-instant</option>
               </select>
             </div>
 
-            <button className="send" onClick={run} disabled={busy}>
-              <span>{busy ? "Paying…" : "Send request"}</span>
-              <small>max $0.001</small>
-            </button>
+            {/* one button, three states */}
+            {!isConnected ? (
+              <button
+                className="send"
+                onClick={() => connect({ connector: connectors[0] })}
+              >
+                <span>Connect wallet</span>
+                <small>to pay per call</small>
+              </button>
+            ) : wrongChain ? (
+              <button
+                className="send"
+                onClick={() => switchChain({ chainId: baseSepolia.id })}
+              >
+                <span>Switch to Base Sepolia</span>
+                <small>wrong network</small>
+              </button>
+            ) : (
+              <button className="send" onClick={run} disabled={busy}>
+                <span>{busy ? "Paying…" : "Send request"}</span>
+                <small>max $0.001</small>
+              </button>
+            )}
 
             <p className="fine">
-              Paid by a throwaway server wallet on testnet. No real funds, nothing stored.
+              Your wallet signs each call on Base Sepolia. Testnet only — no real
+              funds, nothing stored.{" "}
+              <a href="https://faucet.circle.com" target="_blank" rel="noreferrer">
+                Need test USDC?
+              </a>
             </p>
           </div>
 
           <div className="panel meta">
-            <div className="metarow"><span>Scheme</span><b>exact · eip-3009</b></div>
-            <div className="metarow"><span>Asset</span><b>USDC</b></div>
-            <div className="metarow"><span>Chain</span><b>eip155:84532</b></div>
+            <div className="metarow">
+              <span>Scheme</span>
+              <b>exact · eip-3009</b>
+            </div>
+            <div className="metarow">
+              <span>Asset</span>
+              <b>USDC</b>
+            </div>
+            <div className="metarow">
+              <span>Chain</span>
+              <b>eip155:84532</b>
+            </div>
           </div>
         </section>
 
@@ -198,7 +331,11 @@ export default function Playground() {
               ))}
 
               {busy && steps.length > 0 && !done && (
-                <div className="waiting"><i /><i /><i /></div>
+                <div className="waiting">
+                  <i />
+                  <i />
+                  <i />
+                </div>
               )}
 
               {error && (
@@ -212,13 +349,15 @@ export default function Playground() {
 
           {done && (
             <div className="panel ledger-panel">
-              <div className="phead"><span className="ptitle">Ledger</span></div>
+              <div className="phead">
+                <span className="ptitle">Ledger</span>
+              </div>
 
               <div className="ledger">
                 <div className="cell">
                   <span className="ck">Authorized</span>
                   <span className="cv">${done.authorized}</span>
-                  <em>ceiling that was signed</em>
+                  <em>ceiling you signed</em>
                 </div>
                 <div className="cell">
                   <span className="ck">Actually charged</span>
@@ -237,7 +376,9 @@ export default function Playground() {
               </div>
 
               <div className="barwrap">
-                <div className="bartrack"><i style={{ width: `${pct}%` }} /></div>
+                <div className="bartrack">
+                  <i style={{ width: `${pct}%` }} />
+                </div>
                 <span className="barlabel">{pct.toFixed(1)}% of ceiling used</span>
               </div>
 

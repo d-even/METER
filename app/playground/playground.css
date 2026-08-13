@@ -212,3 +212,18 @@ a.tx { color: var(--amber); text-decoration: none; border-bottom: 1px dotted cur
 @media (prefers-reduced-motion: reduce) {
   .pg * { animation: none !important; transition: none !important; }
 }
+
+
+
+.wallet {
+  font-family: "JetBrains Mono", monospace; font-size: 12px;
+  padding: 6px 11px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--card); color: var(--ink);
+}
+.connect {
+  font-family: Archivo, sans-serif; font-size: 13px; font-weight: 500;
+  padding: 7px 14px; border-radius: 999px; border: 0; cursor: pointer;
+  background: var(--ink); color: #fff; transition: background 0.25s var(--ease);
+}
+.connect:hover { background: var(--amber); }
+.fine a { color: var(--amber); text-decoration: none; border-bottom: 1px dotted currentColor; }

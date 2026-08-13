@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import "./meter.css";
-import productImg from "../assets/playground.png"
 
 /* ---------- icons ---------- */
 const ICONS = {
@@ -172,9 +171,10 @@ export default function Landing() {
           <a href="#how">How it works</a>
           <a href="#build">Docs</a>
         </div>
-        <div className="logo"><span className="tick" />METER</div>
+        <div className="logo">
+          <span className="tick" />METER</div>
         <div className="nright">
-          <a href="#" className="pill-btn">Connect Wallet</a>
+          <a href="/playground" className="pill-btn">Playground</a>
         </div>
       </nav>
 
@@ -219,7 +219,7 @@ export default function Landing() {
                   </div>
                 ))}
               </div>
-         <img src={productImg} alt="Product screenshot" />
+         <img src="/assets/playground.png" alt="METER playground" className="ph c" />
             </div>
              
           </div>
@@ -238,12 +238,8 @@ export default function Landing() {
                 percentage. That floor is why every API became a monthly plan —
                 not because anyone wanted one.
               </p>
-              <Placeholder
-                ratio="a"
-                label="pricing comparison · 4:3"
-                icon={ICONS.chart}
-                style={{ marginTop: 26 }}
-              />
+             
+              <img src="/assets/compare.png" alt="METER playground" className="ph a" />
             </div>
 
             <div className="compare rv scale">
@@ -291,10 +287,18 @@ export default function Landing() {
           </div>
 
           <div className="gal" data-stagger>
-            <Placeholder ratio="c" label="playground walkthrough · 16:10" icon={ICONS.window} />
+            
+            <video
+  src="/assets/video.mp4"
+  className="ph c"
+  autoPlay
+  loop
+  muted
+  playsInline
+/>
             <div className="galcol">
-              <Placeholder ratio="b" label="settlement clip · 1:1" icon={ICONS.clock} />
-              <Placeholder ratio="b" label="basescan receipt · 1:1" icon={ICONS.lines} />
+              <img src="/assets/base.png" alt="METER playground" className="ph b" />
+            
             </div>
           </div>
         </section>
@@ -325,7 +329,7 @@ export default function Landing() {
             metering it.
           </p>
           <div className="cta rv">
-            <a href="#" className="b1">View on GitHub</a>
+            <a href="/https://github.com/d-even/METER" className="b1">View on GitHub</a>
             <a href="/playground" className="b2">Try the playground</a>
           </div>
         </div>
@@ -333,8 +337,9 @@ export default function Landing() {
         <footer>
           <span>METER · built on the x402 protocol</span>
           <span>
-            <a href="#">GitHub</a> &nbsp;·&nbsp; <a href="#">X</a> &nbsp;·&nbsp;{" "}
-            <a href="#">Docs</a>
+            <a href="/https://github.com/d-even/METER">GitHub</a> &nbsp;·&nbsp; 
+            <a href="https://x.com/D_even70">X</a> &nbsp;·&nbsp;{" "}
+          
           </span>
         </footer>
       </div>

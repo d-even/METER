@@ -291,3 +291,6 @@ footer a:hover { color: var(--amber); }
   .pin { position: static; height: auto; padding: 60px 0; }
   .hero { margin-top: 0; }
 }
+
+
+img.ph { object-fit: fill; width: 100%; height: 100%; }
