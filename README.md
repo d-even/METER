@@ -67,33 +67,12 @@ Cost is computed from actual token usage, so a short call bills like a short cal
 
 ---
 
-## Project structure
-
-```
-app/
-├── page.tsx                 landing page
-├── playground/
-│   └── page.tsx             live payment flow UI
-└── api/
-    ├── v1/chat/route.ts     the paid endpoint
-    └── demo/route.ts        server-side payer, streams each step to the UI
-lib/
-├── pricing.ts               token usage → USD → atomic USDC
-├── x402.ts                  402 challenge construction (reference)
-└── constants.ts             addresses, chain config
-proxy.ts                     payment middleware guarding /api/v1/chat
-scripts/
-└── pay.ts                   CLI client that pays for a call
-```
-
----
-
 ## Running locally
 
 **Prerequisites:** Node 20+, a wallet with Base Sepolia ETH and USDC.
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/meter
+git clone
 cd meter
 npm install
 ```
