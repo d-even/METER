@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useAccount, useConnect, useSwitchChain, useWalletClient } from "wagmi";
 import { baseSepolia } from "wagmi/chains";
+import { publicActions } from "viem";
 import { wrapFetchWithPayment } from "x402-fetch";
 import "./playground.css";
 
@@ -43,13 +44,15 @@ export default function Playground() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [mounted, setMounted] = useState(false);
   const wireRef = useRef<HTMLDivElement>(null);
 
   const { address, isConnected, chainId } = useAccount();
   const { connect, connectors } = useConnect();
   const { switchChain } = useSwitchChain();
   const { data: walletClient } = useWalletClient();
-  const wrongChain = isConnected && chainId !== baseSepolia.id;
+  const ready = mounted && isConnected;
+  const wrongChain = ready && chainId !== baseSepolia.id;
 
   /* live timer while the request is in flight */
   useEffect(() => {
@@ -63,6 +66,10 @@ export default function Playground() {
     wireRef.current?.scrollTo({ top: 99999, behavior: "smooth" });
   }, [steps]);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   async function run() {
     if (busy || !walletClient) return;
     setBusy(true);
@@ -74,6 +81,9 @@ export default function Playground() {
     const t0 = Date.now();
     const ms = () => `${Date.now() - t0}ms`;
     const push = (s: Step) => setSteps((prev) => [...prev, s]);
+    const wallet = walletClient.extend(publicActions) as Parameters<
+      typeof wrapFetchWithPayment
+    >[1];
 
     const body = JSON.stringify({
       messages: [{ role: "user", content: prompt }],
@@ -123,7 +133,7 @@ export default function Playground() {
         ],
       });
 
-      const fetchWithPay = wrapFetchWithPayment(fetch, walletClient);
+      const fetchWithPay = wrapFetchWithPayment(fetch, wallet);
 
       const paid = await fetchWithPay("/api/v1/chat", {
         method: "POST",
@@ -185,7 +195,7 @@ export default function Playground() {
             Base Sepolia · testnet
           </span>
 
-          {isConnected ? (
+          {ready ? (
             <span className="wallet">{shortAddr(address)}</span>
           ) : (
             <button
@@ -243,7 +253,7 @@ export default function Playground() {
             </div>
 
             {/* one button, three states */}
-            {!isConnected ? (
+            {!ready ? (
               <button
                 className="send"
                 onClick={() => connect({ connector: connectors[0] })}

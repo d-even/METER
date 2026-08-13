@@ -1,4 +1,4 @@
-import { createWalletClient, http } from "viem";
+import { createWalletClient, http, publicActions } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from "viem/chains";
 import { wrapFetchWithPayment } from "x402-fetch";
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
           account,
           chain: baseSepolia,
           transport: http(),
-        });
+        }).extend(publicActions);
 
         const origin = new URL(req.url).origin;
         const target = `${origin}/api/v1/chat`;
@@ -96,7 +96,10 @@ export async function POST(req: Request) {
         } satisfies Step);
 
         // --- step 3+4: paid request ---
-        const fetchWithPay = wrapFetchWithPayment(fetch, wallet);
+        const fetchWithPay = wrapFetchWithPayment(
+          fetch,
+          wallet as Parameters<typeof wrapFetchWithPayment>[1]
+        );
 
         send("step", {
           dir: "→",

@@ -1,8 +1,8 @@
 import { config } from "dotenv";
-import { createWalletClient, http } from "viem";
+import { createWalletClient, http, publicActions } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { wrapFetchWithPayment } from "x402-fetch";
 import { baseSepolia } from "viem/chains";
+import { wrapFetchWithPayment } from "x402-fetch";
 
 config({ path: ".env.local" });
 
@@ -14,9 +14,12 @@ const client = createWalletClient({
   account,
   transport: http(),
   chain: baseSepolia,
-});
+}).extend(publicActions);
 
-const fetchWithPay = wrapFetchWithPayment(fetch, client);
+const fetchWithPay = wrapFetchWithPayment(
+  fetch,
+  client as Parameters<typeof wrapFetchWithPayment>[1]
+);
 
 async function main() {
   const res = await fetchWithPay("http://localhost:3000/api/v1/chat", {
