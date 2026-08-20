@@ -337,7 +337,7 @@ export default function Landing() {
         <footer>
           <span>METER · built on the x402 protocol</span>
           <span>
-            {/* <a href="/https://github.com/d-even/METER">GitHub</a> &nbsp;·&nbsp;  */}
+            {/* <a href="https://github.com/d-even/METER">GitHub</a> &nbsp;·&nbsp;  */}
             <a href="https://x.com/D_even70">X</a> &nbsp;·&nbsp;{" "}
           
           </span>
