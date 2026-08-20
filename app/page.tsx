@@ -328,16 +328,16 @@ export default function Landing() {
             Running on Base Sepolia today. Bring your own endpoint and start
             metering it.
           </p>
-          <div className="cta rv">
+          {/* <div className="cta rv">
             <a href="/https://github.com/d-even/METER" className="b1">View on GitHub</a>
             <a href="/playground" className="b2">Try the playground</a>
-          </div>
+          </div> */}
         </div>
 
         <footer>
           <span>METER · built on the x402 protocol</span>
           <span>
-            <a href="/https://github.com/d-even/METER">GitHub</a> &nbsp;·&nbsp; 
+            {/* <a href="/https://github.com/d-even/METER">GitHub</a> &nbsp;·&nbsp;  */}
             <a href="https://x.com/D_even70">X</a> &nbsp;·&nbsp;{" "}
           
           </span>
