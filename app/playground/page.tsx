@@ -247,7 +247,7 @@ export default function Playground() {
                 Model
               </label>
               <select id="m" disabled={busy}>
-                <option>llama-3.3-70b-versatile</option>
+                <option>openai/gpt-oss-20b</option>
                 <option>llama-3.1-8b-instant</option>
               </select>
             </div>

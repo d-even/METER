@@ -1,8 +1,8 @@
 // USD per 1 million tokens
 const RATES = {
-  "llama-3.3-70b-versatile": { input: 0.59, output: 0.79 },
-  "llama-3.1-8b-instant":    { input: 0.05, output: 0.08 },
+  "openai/gpt-oss-20b": { input: 0.10, output: 0.50 },
 } as const;
+
 
 // Aapka markup — service chalane ka charge
 const MARKUP = 1.2; // 20%
